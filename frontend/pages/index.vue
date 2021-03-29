@@ -9,7 +9,7 @@
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav>
-          <b-nav-item href="#" @click="undo(lastAction)">
+          <b-nav-item href="#" @click="undo(lastActions)">
             Undo
             <b-icon icon="arrow-counterclockwise"></b-icon>
           </b-nav-item>
@@ -47,7 +47,7 @@
         {{ data.index + 1 }}
       </template>
       <template #cell(edit)="data">
-        <b-button variant="danger" size="sm" @click="unresolve(data.index, resolved, unresolved, lastAction)" class="mr-1">
+        <b-button variant="danger" size="sm" @click="unresolve(data.index, resolved, unresolved, lastActions)" class="mr-1">
           unresolve
         </b-button>
       </template>
@@ -59,7 +59,7 @@
         {{ data.index + 1 }}
       </template>
       <template #cell(edit)="data">
-        <b-button variant="success" size="sm" @click="resolve(data.index, unresolved, resolved, lastAction)" class="mr-1">
+        <b-button variant="success" size="sm" @click="resolve(data.index, unresolved, resolved, lastActions)" class="mr-1">
           resolve
         </b-button>
       </template>
@@ -71,7 +71,7 @@
         {{ data.index + 1 }}
       </template>
       <template #cell(edit)="data">
-        <b-button variant="outline-primary" size="sm" @click="unresolveBacklog(data.index, backlog, unresolved, lastAction)" class="mr-1">
+        <b-button variant="outline-primary" size="sm" @click="unresolveBacklog(data.index, backlog, unresolved, lastActions)" class="mr-1">
           unresolve
         </b-button>
       </template>
@@ -100,7 +100,7 @@ export default {
         unresolved,
         backlog,
         fields: ['index', 'code', 'text', 'edit'],
-        lastAction: {index: null, sourceList: null, targetList: null, item: null}
+        lastActions: []
       };
     } catch (error) {
       console.log(
@@ -119,56 +119,48 @@ export default {
     };
   },
   methods: {
-    unresolve (index, resolved, unresolved, lastAction){
-      const item = resolved[index]
+    unresolve (index, resolved, unresolved, lastActions){
+      let item = resolved[index]
       
       // for undo button
-      lastAction.index = index
-      lastAction.sourceList = resolved
-      lastAction.targetList = unresolved
-      lastAction.item = $.extend(true, {}, item)
+      const lastAction = {index: index, sourceList: resolved, targetList: unresolved, item: $.extend(true, {}, item)}
+      lastActions.push(lastAction)
       
       // unresolve
       item.text = item.text.replace("resolved", "unresolved") 
       unresolved.push(item)
       resolved.splice(index, 1)
     },
-    resolve (index, unresolved, resolved, lastAction){
-      const item = unresolved[index]
+    resolve (index, unresolved, resolved, lastActions){
+      let item = unresolved[index]
 
-      // for undo button
-      lastAction.index = index
-      lastAction.sourceList = unresolved
-      lastAction.targetList = resolved
-      lastAction.item = $.extend(true, {}, item)
+      // for undo button      
+      const lastAction = {index: index, sourceList: unresolved, targetList: resolved, item: $.extend(true, {}, item)}
+      lastActions.push(lastAction)
 
       // resolve
       item.text = item.text.replace("unresolved", "resolved")
       resolved.push(item)
       unresolved.splice(index, 1)
     },
-    unresolveBacklog (index, backlog, unresolved, lastAction){
-      const item = backlog[index]
+    unresolveBacklog (index, backlog, unresolved, lastActions){
+      let item = backlog[index]
             
       // for undo button
-      lastAction.index = index
-      lastAction.sourceList = backlog
-      lastAction.targetList = unresolved
-      lastAction.item = $.extend(true, {}, item)
+      const lastAction = {index: index, sourceList: backlog, targetList: unresolved, item: $.extend(true, {}, item)}
+      lastActions.push(lastAction)
       
       // unresolve backlog
       item.text = item.text.replace("in the `backlog`", "`unresolved`")
       unresolved.push(item)
       backlog.splice(index, 1)
     },
-    undo(lastAction){
-      if (lastAction.index != null){
+    undo(lastActions){
+      if (lastActions.length != 0){
+        const lastAction = lastActions.pop()
         lastAction.targetList.pop()
         lastAction.sourceList.splice(lastAction.index, 0, lastAction.item)
-        lastAction.index = null 
-        lastAction.sourceList = null 
-        lastAction.targetList = null 
-        lastAction.item = null
+
       }
     }
   }
