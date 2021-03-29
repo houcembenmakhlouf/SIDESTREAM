@@ -88,12 +88,13 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 Vue.use(BootstrapVue)
 Vue.use(BootstrapVueIcons)
+const operatorName = 'Houcem'
 
 export default {
   async asyncData({ $axios }) {
     try {
       const { resolved, unresolved, backlog } = await $axios.$get(
-        "http://localhost:8000/get_lists"
+        "http://localhost:8000/get_lists", { params: { operator_name : operatorName } }
       );
       return {
         resolved,

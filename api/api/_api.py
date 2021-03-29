@@ -11,7 +11,7 @@ LOGGER = logging.getLogger("API")
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
-app.req_number = 0
+app.users_requests = {}
 
 def _generate_lists() -> Dict[str, Any]:
     """Generate resolved, unresolved and backlog lists."""
@@ -35,11 +35,14 @@ def _generate_lists() -> Dict[str, Any]:
 
 
 @app.get("/get_lists")
-def get_lists() -> Dict[str, Any]:
+def get_lists(operator_name: str) -> Dict[str, Any]:
     """Return resolved, unresolved and backlog lists."""
     LOGGER.info('Generating resolved, unresolved and backlog lists.')
-    app.req_number += 1
-    LOGGER.info('number of requests: ' + str(app.req_number))
+    if operator_name in app.users_requests:
+        app.users_requests[operator_name] += 1
+    else:
+        app.users_requests[operator_name] = 1
+    LOGGER.info(f'number of requests of {operator_name}: {app.users_requests[operator_name]}')
     return _generate_lists()
 
 
