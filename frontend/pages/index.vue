@@ -1,21 +1,94 @@
 <template>
   <div>
-    <div>
-      Resolved:
-      <div v-for="error in resolved" :key="error.index">`{{ error.code }}` - {{ error.text }}</div>
-    </div>
-    <div>
-      Unresolved:
-      <div v-for="error in unresolved" :key="error.index">`{{ error.code }}` - {{ error.text }}</div>
-    </div>
-    <div>
-      Backlog:
-      <div v-for="error in backlog" :key="error.index">`{{ error.code }}` - {{ error.text }}</div>
-    </div>
+    <b-navbar toggleable="lg" type="dark" variant="info" fixed="top">
+      <b-navbar-brand href="#">
+        <img width="20%" src="/Sidestream.ico" alt="logo">
+      </b-navbar-brand>
+
+      <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+
+      <b-collapse id="nav-collapse" is-nav>
+        <b-navbar-nav>
+          <b-nav-item href="#" @click="undo(lastAction)">
+            Undo
+            <b-icon icon="arrow-counterclockwise"></b-icon>
+          </b-nav-item>
+        </b-navbar-nav>
+
+        <!-- Right aligned nav items -->
+        <b-navbar-nav class="ml-auto">
+          <b-nav-form>
+            <b-form-input size="sm" class="mr-sm-2" placeholder="Search"></b-form-input>
+            <b-button size="sm" class="my-2 my-sm-0" type="submit">Search</b-button>
+          </b-nav-form>
+
+          <b-nav-item-dropdown text="Lang" right>
+            <b-dropdown-item href="#">EN</b-dropdown-item>
+            <b-dropdown-item href="#">ES</b-dropdown-item>
+            <b-dropdown-item href="#">RU</b-dropdown-item>
+            <b-dropdown-item href="#">FA</b-dropdown-item>
+          </b-nav-item-dropdown>
+
+          <b-nav-item-dropdown right>
+            <!-- Using 'button-content' slot -->
+            <template #button-content>
+              <em>User</em>
+            </template>
+            <b-dropdown-item href="#">Profile</b-dropdown-item>
+            <b-dropdown-item href="#">Sign Out</b-dropdown-item>
+          </b-nav-item-dropdown>
+        </b-navbar-nav>
+      </b-collapse>
+    </b-navbar>
+
+    Resolved:
+    <b-table striped hover :items="resolved" :fields="fields">
+      <template #cell(index)="data">
+        {{ data.index + 1 }}
+      </template>
+      <template #cell(edit)="data">
+        <b-button variant="danger" size="sm" @click="unresolve(data.index, resolved, unresolved, lastAction)" class="mr-1">
+          unresolve
+        </b-button>
+      </template>
+    </b-table>
+    
+    Unresolved:
+    <b-table striped hover :items="unresolved" :fields="fields">
+      <template #cell(index)="data">
+        {{ data.index + 1 }}
+      </template>
+      <template #cell(edit)="data">
+        <b-button variant="success" size="sm" @click="resolve(data.index, unresolved, resolved, lastAction)" class="mr-1">
+          resolve
+        </b-button>
+      </template>
+    </b-table>
+    
+    Backlog: 
+    <b-table striped hover :items="backlog" :fields="fields">
+      <template #cell(index)="data">
+        {{ data.index + 1 }}
+      </template>
+      <template #cell(edit)="data">
+        <b-button variant="outline-primary" size="sm" @click="unresolveBacklog(data.index, backlog, unresolved, lastAction)" class="mr-1">
+          unresolve
+        </b-button>
+      </template>
+    </b-table>
   </div>
 </template>
 
 <script>
+import $ from 'jquery'
+import Vue from 'vue'
+import { BootstrapVue, BootstrapVueIcons } from 'bootstrap-vue'
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
+
+Vue.use(BootstrapVue)
+Vue.use(BootstrapVueIcons)
+
 export default {
   async asyncData({ $axios }) {
     try {
@@ -25,7 +98,9 @@ export default {
       return {
         resolved,
         unresolved,
-        backlog
+        backlog,
+        fields: ['index', 'code', 'text', 'edit'],
+        lastAction: {index: null, sourceList: null, targetList: null, item: null}
       };
     } catch (error) {
       console.log(
@@ -42,6 +117,60 @@ export default {
       unresolved: [],
       backlog: []
     };
+  },
+  methods: {
+    unresolve (index, resolved, unresolved, lastAction){
+      const item = resolved[index]
+      
+      // for undo button
+      lastAction.index = index
+      lastAction.sourceList = resolved
+      lastAction.targetList = unresolved
+      lastAction.item = $.extend(true, {}, item)
+      
+      // unresolve
+      item.text = item.text.replace("resolved", "unresolved") 
+      unresolved.push(item)
+      resolved.splice(index, 1)
+    },
+    resolve (index, unresolved, resolved, lastAction){
+      const item = unresolved[index]
+
+      // for undo button
+      lastAction.index = index
+      lastAction.sourceList = unresolved
+      lastAction.targetList = resolved
+      lastAction.item = $.extend(true, {}, item)
+
+      // resolve
+      item.text = item.text.replace("unresolved", "resolved")
+      resolved.push(item)
+      unresolved.splice(index, 1)
+    },
+    unresolveBacklog (index, backlog, unresolved, lastAction){
+      const item = backlog[index]
+            
+      // for undo button
+      lastAction.index = index
+      lastAction.sourceList = backlog
+      lastAction.targetList = unresolved
+      lastAction.item = $.extend(true, {}, item)
+      
+      // unresolve backlog
+      item.text = item.text.replace("in the `backlog`", "`unresolved`")
+      unresolved.push(item)
+      backlog.splice(index, 1)
+    },
+    undo(lastAction){
+      if (lastAction.index != null){
+        lastAction.targetList.pop()
+        lastAction.sourceList.splice(lastAction.index, 0, lastAction.item)
+        lastAction.index = null 
+        lastAction.sourceList = null 
+        lastAction.targetList = null 
+        lastAction.item = null
+      }
+    }
   }
 };
 </script>

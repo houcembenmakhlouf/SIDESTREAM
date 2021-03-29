@@ -60,3 +60,7 @@ export default {
     }
   }
 }
+
+module.exports = {
+  modules: ['bootstrap-vue/nuxt']
+}

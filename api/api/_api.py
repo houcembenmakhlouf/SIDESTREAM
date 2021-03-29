@@ -10,6 +10,8 @@ ERROR_CODES = [error_code for error_code in range(50)]
 LOGGER = logging.getLogger("API")
 app = FastAPI()
 
+logging.basicConfig(level=logging.INFO)
+app.req_number = 0
 
 def _generate_lists() -> Dict[str, Any]:
     """Generate resolved, unresolved and backlog lists."""
@@ -36,6 +38,8 @@ def _generate_lists() -> Dict[str, Any]:
 def get_lists() -> Dict[str, Any]:
     """Return resolved, unresolved and backlog lists."""
     LOGGER.info('Generating resolved, unresolved and backlog lists.')
+    app.req_number += 1
+    LOGGER.info('number of requests: ' + str(app.req_number))
     return _generate_lists()
 
 
@@ -82,13 +86,45 @@ def get_list_intersection_counts() -> Dict[str, int]:
     # TODO: Implement the code that calculates how many errors with *the same error code* are shared between
     # the possible pairs of lists here. Then return a Dict like the one shown in the documentation string above,
     # e.g.:
-    return  {
-        'resolved_unresolved': 12,
-        'resolved_backlog': 6,
-        'unresolved_backlog': 35
-    }
+    # return  {
+    #     'resolved_unresolved': 12,
+    #     'resolved_backlog': 6,
+    #     'unresolved_backlog': 35
+    # }
     # NOTE: THIS IS JUST AN EXAMPLE, REPLACE WITH YOUR OWN CODE AND `return`!
+    
+    resolved_unresolved = 0
+    resolved_backlog = 0
+    unresolved_backlog = 0
+    
+    
+    resolved_codes = []
+    for error in resolved:
+        if error['code'] not in resolved_codes:
+            resolved_codes.append(error['code'])
+    
+    unresolved_codes = []
+    for error in unresolved:
+        if error['code'] not in unresolved_codes:
+            unresolved_codes.append(error['code'])
+            if error['code'] in resolved_codes:
+                resolved_unresolved += 1
+    
+    backlog_codes = []
+    for error in backlog:
+        if error['code'] not in backlog_codes:
+            backlog_codes.append(error['code'])
+            if error['code'] in resolved_codes:
+                resolved_backlog += 1
+            if error['code'] in unresolved_codes:
+                unresolved_backlog += 1
 
+    return  {
+        'resolved_unresolved': resolved_unresolved,
+        'resolved_backlog': resolved_backlog,
+        'unresolved_backlog': unresolved_backlog
+    }
+    
 
 def run(host: str, port: int) -> None:
     """Run the code challenge API."""
